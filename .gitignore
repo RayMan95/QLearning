@@ -1,0 +1,10 @@
+# Visual Studio files
+clean_slate/.vs
+clean_slate/Debug
+clean_slate/smart sweepers.sdf
+clean_slate/smart sweepers.sln
+clean_slate/smart sweepers.vcxproj
+clean_slate/smart sweepers.vcxproj.filters
+
+# Training data -> download from Vula or request file by email
+clean_slate/training_data.txt
