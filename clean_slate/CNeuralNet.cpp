@@ -24,8 +24,8 @@ using namespace std;
  for the weights of both input->hidden and hidden->output layers, as well as the input, hidden
  and output layers.
 */
-CNeuralNet::CNeuralNet(uint inputLayerSize, uint hiddenLayerSize, uint outputLayerSize, double lRate, double mse_cutoff) :
-	_lRate(lRate), _MSECutoff(mse_cutoff)
+CNeuralNet::CNeuralNet(uint inputLayerSize, uint hiddenLayerSize, uint outputLayerSize, 
+	double lRate, double mse_cutoff) : _lRate(lRate), _MSECutoff(mse_cutoff)
 {
 	_inputs = vector<double>(inputLayerSize);
 	_hidden = vector<double>(hiddenLayerSize);
@@ -49,7 +49,7 @@ void CNeuralNet::initWeights(){
 	}
 	for (int i = 0; i < in_size; ++i)
 	{
-		_output_weights[i] = RandFloat();
+		_output_weights[i] = RandFloat(); // floats?
 	}
 }
 /**
@@ -84,7 +84,7 @@ void CNeuralNet::feedForward(const std::vector<double> inputs) {
 			sum += _output_weights[i] * _hidden[i];
 		}
 
-		_outputs[i] = sum / (1 + abs(sum));
+		_outputs[i] = fastSigmoid(sum);
 	}
 }
 /**
@@ -99,14 +99,21 @@ void CNeuralNet::feedForward(const std::vector<double> inputs) {
  2. Compute the error at the hidden layer: sigmoid_d(hidden) * 
 	sum(weights_o_h * difference between expected output and computed output at output layer)
 	for each hidden layer node
- 3. Adjust the weights from the hidden to the output layer: learning rate * error at the output layer * error at the hidden layer
-    for each connection between the hidden and output layers
- 4. Adjust the weights from the input to the hidden layer: learning rate * error at the hidden layer * input layer node value
-    for each connection between the input and hidden layers
+ 3. Adjust the weights from the hidden to the output layer: learning rate * error at the output layer * error at 
+	the hidden layer for each connection between the hidden and output layers
+ 4. Adjust the weights from the input to the hidden layer: learning rate * error at the hidden layer * input 
+	layer node value for each connection between the input and hidden layers
  5. REMEMBER TO FREE ANY ALLOCATED MEMORY WHEN YOU'RE DONE (or use std::vector ;)
 */
 void CNeuralNet::propagateErrorBackward(const std::vector<double> desiredOutput){
-	//TODO
+	// (1)
+	for (int i = 0; i < _outputs.size(); ++i) {
+		double outError = fastSigmoid(_outputs[i]) * (_outputs[i] * desiredOutput[i]);
+	}
+	// (2)
+	//for ()
+
+
 }
 /**
 This computes the mean squared error
@@ -132,18 +139,36 @@ The primary steps are:
 void CNeuralNet::train(const std::vector<std::vector<double>> inputs,
 	const std::vector<std::vector<double>> outputs, uint trainingSetSize) {
 	//TODO
+	double mse = 1000;
+	while (mse > _MSECutoff) {
+		for (int i = 0; i < inputs.size(); ++i) {
+			
+			feedForward(inputs[i]);
+		}
 
+		
+	}
 }
 /**
 Once our network is trained we can simply feed it some input through the feed forward
 method and take the maximum value as the classification
 */
 uint CNeuralNet::classify(const std::vector<double> input){
-	return 1; //TODO: fix me
+	feedForward(input);
+	uint max = 0;
+	for (double d : _outputs) {
+		if (d > max) max = d;
+	}
+
+	return max;
 }
 /**
 Gets the output at the specified index
 */
 double CNeuralNet::getOutput(uint index) const{
 	return _outputs[index];
+}
+
+double CNeuralNet::fastSigmoid(double val) {
+	return val / (1 + abs(val));
 }

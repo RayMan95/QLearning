@@ -126,32 +126,32 @@ bool CDiscController::Update()
 			if (GrabHit >= 0)
 			{
 				switch(m_vecObjects[GrabHit]->getType()){
-				case CDiscCollisionObject::Mine:
+					case CDiscCollisionObject::Mine:
 					{
-					//we have discovered a mine so increase MinesGathered
-					if (!m_vecObjects[GrabHit]->isDead())
+						//we have discovered a mine so increase MinesGathered
+						if (!m_vecObjects[GrabHit]->isDead())
+						{
+							(m_vecSweepers[i])->IncrementMinesGathered();
+							CDiscCollisionObject* oldObject = m_vecObjects[GrabHit];
+							oldObject->die();
+						}
+						break;
+					}
+					case CDiscCollisionObject::Rock:
 					{
-						(m_vecSweepers[i])->IncrementMinesGathered();
+						//destroy the sweeper until it reincarnates in the next round
+						//CDiscCollisionObject* oldObject = m_vecObjects[GrabHit];
+						//oldObject->die();
+						(m_vecSweepers[i])->die();
+						break;
+					}
+					case CDiscCollisionObject::SuperMine:
+					{
+						//destroy both the sweeper and the supermine until both reincarnate in the next round
 						CDiscCollisionObject* oldObject = m_vecObjects[GrabHit];
 						oldObject->die();
-					}
-					break;
-					}
-				case CDiscCollisionObject::Rock:
-					{
-					//destroy the sweeper until it reincarnates in the next round
-					//CDiscCollisionObject* oldObject = m_vecObjects[GrabHit];
-					//oldObject->die();
-					(m_vecSweepers[i])->die();
-					break;
-					}
-				case CDiscCollisionObject::SuperMine:
-					{
-					//destroy both the sweeper and the supermine until both reincarnate in the next round
-					CDiscCollisionObject* oldObject = m_vecObjects[GrabHit];
-					oldObject->die();
-					(m_vecSweepers[i])->die();
-					break;
+						(m_vecSweepers[i])->die();
+						break;
 					}
 				}
 			}
