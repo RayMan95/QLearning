@@ -5,22 +5,48 @@
 #include <cmath>
 
 typedef unsigned int uint;
+
+struct Q_Table {
+private:
+	vector<vector<vector<double>>> _q_table;
+public:
+	// 4 coz 4 directions
+	Q_Table(uint x, uint y) { 
+		_q_table = vector<vector<vector<double>>>(y, vector<vector<double>>(x, vector<double>(4, 0.0))); 
+	}
+
+	const double& GetQ(uint direction, uint index_x, uint index_y) const
+	{
+		return _q_table[index_y][index_x][direction];
+	}
+
+	void SetQ(uint direction, uint index_x, uint index_y, double& new_Q)
+	{
+		_q_table[index_y][index_x][direction] = new_Q;
+	}
+};
+
 class CQLearningController :
 	public CDiscController
 {
 private:
 	uint _grid_size_x;
 	uint _grid_size_y;
-	const int _num_sweepers = CController::m_NumSweepers;
-	vector<double> _q_tables = vector<double>(_num_sweepers * _grid_size_y * _grid_size_x, 0);
-	ROTATION_DIRECTION ChooseSweeperDirection(SVector2D<int> CurrentPos, uint SweeperNo);
-	int CalculateSweeperIndex(int x, int y, uint SweeperNo);
+	const double _gamma = 0.8; // future reward discount (gamma)
+	const double _learnRate = 0.7; // learning rate (alpha)
+	const uint _num_sweepers = CController::m_NumSweepers;
+	Q_Table * _q_table;
+	ROTATION_DIRECTION ChooseSweeperDirection(uint SweeperNo);
+	double& CalculateQ(uint curr_x, uint curr_y, uint sweeper_no, double& old_Q);
+	const double& GetQ(ROTATION_DIRECTION direction, uint grid_pos_x, uint grid_pos_y);
+	void SetQ(ROTATION_DIRECTION direction, uint grid_pos_x, uint grid_pos_y,
+		double new_Q);
+	uint& DirectionToIndex(ROTATION_DIRECTION direction);
 public:
 	CQLearningController(HWND hwndMain);
 	virtual void InitializeLearningAlgorithm(void);
-	double R(uint x, uint y, uint sweeper_no);
+	double& R(uint x, uint y, uint sweeper_no);
 	virtual bool Update(void);
-	void dumpTable();
 	virtual ~CQLearningController(void);
 };
 

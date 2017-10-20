@@ -21,13 +21,14 @@ typedef unsigned int uint;
 class CNeuralNet {
 private: 
 	std::vector<double> _inputs, _hidden, _outputs;
-	std::vector<double> _input_weights, _output_weights;
+	std::vector<std::vector<double>> _i_h_weights, _h_o_weights;
 	const double _lRate, _MSECutoff;
 	double fastSigmoid(double val);
 protected:
 	void feedForward(const std::vector<double> inputs); //you may modify this to do std::vector<double> if you want
 	void propagateErrorBackward(const std::vector<double> desiredOutput); //you may modify this to do std::vector<double> if you want
 	double meanSquaredError(const std::vector<double> desiredOutput); //you may modify this to do std::vector<double> if you want
+	double meanSquaredError(const std::vector<double> desiredOutput, const std::vector<double> layer);
 public:
 	CNeuralNet(uint inputLayerSize, uint hiddenLayerSize, uint outputLayerSize, double lRate, double mse_cutoff);
 	void initWeights();

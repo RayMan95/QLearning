@@ -30,6 +30,9 @@ CNeuralNet::CNeuralNet(uint inputLayerSize, uint hiddenLayerSize, uint outputLay
 	_inputs = vector<double>(inputLayerSize);
 	_hidden = vector<double>(hiddenLayerSize);
 	_outputs = vector<double>(outputLayerSize);
+
+	_i_h_weights = vector<vector<double>>(hiddenLayerSize, vector<double>(inputLayerSize, 0));
+	_i_h_weights = vector<vector<double>>(hiddenLayerSize, vector<double>(outputLayerSize, 0));
 }
 /**
  The destructor of the class. All allocated memory will be released here
@@ -43,20 +46,26 @@ CNeuralNet::~CNeuralNet() {
 void CNeuralNet::initWeights(){
 	int in_size = _inputs.size(), out_size = _outputs.size();
 
-	for (int i = 0; i < in_size; ++i)
+	for (vector<double> v : _i_h_weights)
 	{
-		_input_weights[i] = RandFloat();
+		for (int j = 0; j < v.size(); ++j)
+		{
+			v[j] = RandFloat();
+		}
 	}
-	for (int i = 0; i < in_size; ++i)
+	for (vector<double> v : _h_o_weights)
 	{
-		_output_weights[i] = RandFloat(); // floats?
+		for (int j = 0; j < v.size(); ++j)
+		{
+			v[j] = RandFloat();
+		}
 	}
 }
 /**
  This is the forward feeding part of back propagation.
  1. This should take the input and copy the memory (use memcpy / std::copy)
  to the allocated _input array.
- 2. Compute the output of at the hidden layer nodes 
+ 2. Compute the output of all the hidden layer nodes 
  (each _hidden layer node = sigmoid (sum( _weights_h_i * _inputs)) //assume the network is completely connected
  3. Repeat step 2, but this time compute the output at the output layer
 */
@@ -65,18 +74,23 @@ void CNeuralNet::feedForward(const std::vector<double> inputs) {
 	std::copy(inputs.begin(), inputs.end(), _inputs.begin());
 	
 	// input -> hidden nodes
+	// 'fast sigmoid' : f(x) = x / (1 + abs(x))
 	int i = 0, hidden_size = _hidden.size();
 	while (i < hidden_size) {
-		double  sum = 0;
-		for (int j = 0; j < _inputs.size(); ++j) {
-			sum += _input_weights[i] * inputs[i];
+		vector<double> v = _i_h_weights[i];
+
+		double sum = 0;
+		for (int j = 0; j < v.size(); ++j)
+		{
+			sum += v[j] * _inputs[j]; // assumes same size (which they should be)
 		}
-		// 'fast sigmoid' : f(x) = x / (1 + abs(x))
+
+
 		_hidden[i] = sum / (1 + abs(sum));
 	}
 
 	// hidden -> output nodes
-	int output_size = _outputs.size();
+	/*int output_size = _outputs.size();
 	i = 0;
 	while (i < output_size) {
 		double  sum = 0;
@@ -85,7 +99,7 @@ void CNeuralNet::feedForward(const std::vector<double> inputs) {
 		}
 
 		_outputs[i] = fastSigmoid(sum);
-	}
+	}*/
 }
 /**
  This is the actual back propagation part of the back propagation algorithm
@@ -107,12 +121,41 @@ void CNeuralNet::feedForward(const std::vector<double> inputs) {
 */
 void CNeuralNet::propagateErrorBackward(const std::vector<double> desiredOutput){
 	// (1)
+	/*double outError = 0;
 	for (int i = 0; i < _outputs.size(); ++i) {
-		double outError = fastSigmoid(_outputs[i]) * (_outputs[i] * desiredOutput[i]);
-	}
+		 outError = fastSigmoid(_outputs[i]) * (desiredOutput[i] - _outputs[i]);
+	}*/
+	double output_MSE = meanSquaredError(desiredOutput); //?
+	
 	// (2)
-	//for ()
+	double h_squared_error_sum = 0; // sum of squared error for each hidden node
+	int h_o_size = _h_o_weights.size();
+	for (int i = 0; i < h_o_size; ++i) {
+		
+		double h_o_error = fastSigmoid(_hidden[i]);
+		
+		vector<double> v = _h_o_weights[i];
+		
+		for (int j = 0; j < v.size(); ++j) {
+			h_o_error += v[j] * (desiredOutput[j] - _outputs[j]);
+		}
 
+		h_squared_error_sum += h_o_error * h_o_error; // square for h_MSE
+	}
+
+	double hidden_MSE = h_squared_error_sum / h_o_size;
+
+	// (3)
+	/*for (int i = 0; i < _output_weights.size(); ++i) {
+
+		double o_h_error = fastSigmoid(_hidden[i]);
+
+		vector<double> v = _output_weights[i];
+
+		for (int j = 0; j < v.size(); ++j) {
+			h_i_error += v[j] * (desiredOutput[j] - _outputs[j]);
+		}
+	}*/
 
 }
 /**
@@ -120,13 +163,18 @@ This computes the mean squared error
 A very handy formula to test numeric output with. You may want to commit this one to memory
 */
 double CNeuralNet::meanSquaredError(const std::vector<double> desiredOutput){
-	int sum = 0, outputLayerSize = _outputs.size(), err = 0;
-	
+	int outputLayerSize = _outputs.size();
+	double sum = 0, err = 0;
 	for (int i = 0; i < outputLayerSize; ++i) {
 		err = desiredOutput[i] - _outputs[i];
 		sum += err*err;
 	}
 	return sum / outputLayerSize;
+}
+double CNeuralNet::meanSquaredError(const std::vector<double> desiredOutput, const std::vector<double> layer)
+{
+
+	return 0.0;
 }
 /**
 This trains the neural network according to the back propagation algorithm.
@@ -139,10 +187,10 @@ The primary steps are:
 void CNeuralNet::train(const std::vector<std::vector<double>> inputs,
 	const std::vector<std::vector<double>> outputs, uint trainingSetSize) {
 	//TODO
+	// I think they're 2D coz they represent x*y of grid
 	double mse = 1000;
 	while (mse > _MSECutoff) {
 		for (int i = 0; i < inputs.size(); ++i) {
-			
 			feedForward(inputs[i]);
 		}
 

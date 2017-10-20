@@ -1,4 +1,5 @@
 # Visual Studio files
+.vs/
 clean_slate/.vs
 clean_slate/Debug
 clean_slate/smart sweepers.sdf
