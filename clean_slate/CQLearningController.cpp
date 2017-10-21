@@ -50,7 +50,7 @@ ROTATION_DIRECTION CQLearningController::ChooseSweeperDirection(uint SweeperNo)
 
 	double max_q = north_q_val;
 	max_dirs[0] = ROTATION_DIRECTION::NORTH;
-	int index = 1;
+	int count = 1;
 
 	double q_val = south_q_val;
 	if (q_val >= max_q)
@@ -58,12 +58,12 @@ ROTATION_DIRECTION CQLearningController::ChooseSweeperDirection(uint SweeperNo)
 		if (q_val > max_q) {
 			max_q = q_val;
 			max_dirs[0] = ROTATION_DIRECTION::SOUTH;
-			index = 1;
+			count = 1;
 		}
 		else // q_val == max_q; add to dirs
 		{
-			max_dirs[index] = ROTATION_DIRECTION::SOUTH;
-			++index;
+			max_dirs[count] = ROTATION_DIRECTION::SOUTH;
+			++count;
 		}
 	}
 
@@ -73,12 +73,12 @@ ROTATION_DIRECTION CQLearningController::ChooseSweeperDirection(uint SweeperNo)
 		if (q_val > max_q) {
 			max_q = q_val;
 			max_dirs[0] = ROTATION_DIRECTION::WEST;
-			index = 1;
+			count = 1;
 		}
 		else
 		{
-			max_dirs[index] = ROTATION_DIRECTION::WEST;
-			++index;
+			max_dirs[count] = ROTATION_DIRECTION::WEST;
+			++count;
 		}
 	}
 
@@ -88,29 +88,27 @@ ROTATION_DIRECTION CQLearningController::ChooseSweeperDirection(uint SweeperNo)
 		if (q_val > max_q) {
 			max_q = q_val;
 			max_dirs[0] = ROTATION_DIRECTION::EAST;
-			index = 1;
+			count = 1;
 		}
 		else
 		{
-			max_dirs[index] = ROTATION_DIRECTION::EAST;
-			++index;
+			max_dirs[count] = ROTATION_DIRECTION::EAST;
+			++count;
 		}
 	}
 
-	--index;
-	return max_dirs[RandInt(0,index)];
+	--count;
+	return max_dirs[RandInt(0,count)];
 }
 
-double& CQLearningController::CalculateQ(uint curr_x, uint curr_y, uint sweeper_no, double& old_Q)
+double& CQLearningController::CalculateQ(ROTATION_DIRECTION direction, uint curr_x, uint curr_y, uint sweeper_no, double& old_Q)
 {
 
-	// Formula: Q(oldstate, action) = ((1-learnRate)*Q(oldstate, action) + (learnRate*(R + (gamma * Q(newstate, bestaction)))
 	double * Q = new double(0);
-
+	*Q += old_Q;
 	// With learning rate
-	*Q = (1 - _learnRate) * old_Q;
 	double new_state_best_q = GetQ(ChooseSweeperDirection(sweeper_no), curr_x, curr_y); // get best Q of current state
-	*Q += _learnRate * (R(curr_x, curr_y, sweeper_no) + (_gamma * new_state_best_q));
+	*Q += _learnRate*(R(curr_x, curr_y, sweeper_no) + (_gamma*new_state_best_q) - old_Q);
 
 	return *Q;
 }
@@ -146,7 +144,11 @@ double& CQLearningController::R(uint x, uint y, uint sweeper_no) {
 			case CDiscCollisionObject::Mine:
 			{
 				if (m_vecObjects[GrabHit]->isDead()) *r = -2; // mine already dead
-				else *r = 50; // high reward for gathering mine 
+				else // high reward for gathering mine 
+				{
+					++_mines_gathered;
+					*r = 50 + _mines_gathered; // increases per mine gathered
+				}
 				break;
 			}
 			case CDiscCollisionObject::Rock:
@@ -188,8 +190,7 @@ bool CQLearningController::Update(void)
 	}
 
 	double oldQ = 0, newQ = 0;
-	SVector2D<int> oldPos, newPos;
-	ROTATION_DIRECTION dir;
+	SVector2D<int> oldPos;
 
 	vector<bool> wasAlive = vector<bool>(_num_sweepers, false);
 
@@ -202,8 +203,8 @@ bool CQLearningController::Update(void)
 		oldPos = m_vecSweepers[sw]->Position();
 
 		//2:::Select action with highest historic return:
-		dir = ChooseSweeperDirection(sw);
-		m_vecSweepers[sw]->setRotation(dir);
+		
+		m_vecSweepers[sw]->setRotation(ChooseSweeperDirection(sw));
 	}
 	//now call the parents update, so all the sweepers fulfill their chosen action
 	CDiscController::Update(); //call the parent's class update. Do not delete this.
@@ -212,11 +213,11 @@ bool CQLearningController::Update(void)
 		if (m_vecSweepers[sw]->isDead() && !wasAlive[sw]) continue; // was already dead, so don't update
 
 		//3:::Observe new state:
-		oldQ = GetQ(dir, oldPos.x, oldPos.y); // get old Q
-		newQ = CalculateQ(oldPos.x, oldPos.y, sw, oldQ); // calculate new Q
+		oldQ = GetQ(m_vecSweepers[sw]->getRotation(), oldPos.x, oldPos.y); // get old Q
+		newQ = CalculateQ(m_vecSweepers[sw]->getRotation(), oldPos.x, oldPos.y, sw, oldQ); // calculate new Q
 		
 		//4:::Update _Q_s_a accordingly:
-		SetQ(dir, oldPos.x, oldPos.y, newQ);
+		SetQ(m_vecSweepers[sw]->getRotation(), oldPos.x, oldPos.y, newQ);
 	}
 	return true;
 }

@@ -33,11 +33,12 @@ private:
 	uint _grid_size_x;
 	uint _grid_size_y;
 	const double _gamma = 0.8; // future reward discount (gamma)
-	const double _learnRate = 0.7; // learning rate (alpha)
+	const double _learnRate = 0.2; // learning rate (alpha)
+	double _mines_gathered = 0;
 	const uint _num_sweepers = CController::m_NumSweepers;
 	Q_Table * _q_table;
 	ROTATION_DIRECTION ChooseSweeperDirection(uint SweeperNo);
-	double& CalculateQ(uint curr_x, uint curr_y, uint sweeper_no, double& old_Q);
+	double& CalculateQ(ROTATION_DIRECTION direction, uint curr_x, uint curr_y, uint sweeper_no, double& old_Q);
 	const double& GetQ(ROTATION_DIRECTION direction, uint grid_pos_x, uint grid_pos_y);
 	void SetQ(ROTATION_DIRECTION direction, uint grid_pos_x, uint grid_pos_y,
 		double new_Q);
